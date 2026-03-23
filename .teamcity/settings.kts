@@ -100,6 +100,20 @@ object Build : BuildType({
                 commandArgs = "--platform linux/amd64 --build-arg artifact_version=%env.COMMIT_ID% --build-arg build_version=%build.counter%"
             }
         }
+        dockerCommand {
+            name = "docker image push"
+            id = "docker_image_push"
+
+            conditions {
+                doesNotEqual("env.isProdBuild", "Yes")
+            }
+            commandType = push {
+                namesAndTags = """
+                    088332244542.dkr.ecr.ap-south-1.amazonaws.com/hello-app:%build.number%
+                    088332244542.dkr.ecr.ap-south-1.amazonaws.com/hello-app:latest
+                """.trimIndent()
+            }
+        }
     }
 
     features {
