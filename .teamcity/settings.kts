@@ -33,6 +33,10 @@ project {
     """.trimIndent()
 
     buildType(Build)
+
+    params {
+        param("env.COMMIT_ID", "dummy")
+    }
 }
 
 object Build : BuildType({
