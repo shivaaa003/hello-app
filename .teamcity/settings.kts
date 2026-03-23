@@ -27,6 +27,16 @@ version = "2025.11"
 project {
     description = """
         this is to understand the ci on the teamcity 
-        this is minicry of oasis project 
+        this is minicry of oasis project
     """.trimIndent()
+
+    buildType(Build)
 }
+
+object Build : BuildType({
+    name = "Build"
+
+    vcs {
+        root(DslContext.settingsRoot)
+    }
+})
