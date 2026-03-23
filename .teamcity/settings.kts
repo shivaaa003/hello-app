@@ -78,8 +78,8 @@ object Build : BuildType({
                 }
                 contextDir = "."
                 namesAndTags = """
-                    088332244542.dkr.ecr.ap-south-1.amazonaws.com/hello-app:%teamcity.build.branch%_%build.number%
-                    088332244542.dkr.ecr.ap-south-1.amazonaws.com/hello-app:%teamcity.build.branch%_latest
+                    088332244542.dkr.ecr.ap-south-1.amazonaws.com/hello-app:%teamcity.build.vcs.branch.replace('/', '-')%_%build.number%
+                    088332244542.dkr.ecr.ap-south-1.amazonaws.com/hello-app:%teamcity.build.vcs.branch.replace('/', '-')%_latest
                 """.trimIndent()
                 commandArgs = "--platform linux/amd64 --build-arg artifact_version=%env.COMMIT_ID% --build-arg build_version=%build.counter%"
             }
