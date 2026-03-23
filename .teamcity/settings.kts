@@ -43,6 +43,7 @@ object Build : BuildType({
     name = "Build"
 
     params {
+        param("env.COMMIT_ID", "")
         param("env.isProdBuild", "")
     }
 
