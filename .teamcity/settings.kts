@@ -79,8 +79,8 @@ object Build : BuildType({
                 }
                 contextDir = "."
                 namesAndTags = """
-                    088332244542.dkr.ecr.ap-south-1.amazonaws.com/hello-app:%env.BRANCH_CLEAN%_%build.number%
-                    088332244542.dkr.ecr.ap-south-1.amazonaws.com/hello-app:%env.BRANCH_CLEAN%_latest
+                    088332244542.dkr.ecr.ap-south-1.amazonaws.com/hello-app:%build.number%
+                    088332244542.dkr.ecr.ap-south-1.amazonaws.com/hello-app:latest
                 """.trimIndent()
                 commandArgs = "--platform linux/amd64 --build-arg artifact_version=%env.COMMIT_ID% --build-arg build_version=%build.counter%"
             }
