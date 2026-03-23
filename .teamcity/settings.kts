@@ -1,4 +1,5 @@
 import jetbrains.buildServer.configs.kotlin.*
+import jetbrains.buildServer.configs.kotlin.buildSteps.script
 
 /*
 The settings script is an entry point for defining a TeamCity
@@ -38,5 +39,21 @@ object Build : BuildType({
 
     vcs {
         root(DslContext.settingsRoot)
+    }
+
+    steps {
+        script {
+            name = "set commit id"
+            id = "set_commit_id"
+
+            conditions {
+                doesNotEqual("env.isProdBuild", "yes")
+            }
+            scriptContent = """
+                SHORT_COMMIT_HASH=${'$'}(git rev-parse --short HEAD)
+                echo "##teamcity[setParameter name='env.COMMIT_ID' value='${'$'}SHORT_COMMIT_HASH']"
+                echo "commit-id = ${'$'}SHORT_COMMIT_HASH"
+            """.trimIndent()
+        }
     }
 })
