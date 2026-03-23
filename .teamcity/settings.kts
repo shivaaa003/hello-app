@@ -1,4 +1,5 @@
 import jetbrains.buildServer.configs.kotlin.*
+import jetbrains.buildServer.configs.kotlin.buildSteps.dockerCommand
 import jetbrains.buildServer.configs.kotlin.buildSteps.script
 
 /*
@@ -54,6 +55,25 @@ object Build : BuildType({
                 echo "##teamcity[setParameter name='env.COMMIT_ID' value='${'$'}SHORT_COMMIT_HASH']"
                 echo "commit-id = ${'$'}SHORT_COMMIT_HASH"
             """.trimIndent()
+        }
+        dockerCommand {
+            name = "dockerbuild"
+            id = "dockerbuild"
+
+            conditions {
+                doesNotEqual("env.isProdBuild", "Yes")
+            }
+            commandType = build {
+                source = file {
+                    path = "Dockerfile"
+                }
+                contextDir = "."
+                namesAndTags = """
+                    088332244542.dkr.ecr.ap-south-1.amazonaws.com/hello-app:%teamcity.build.branch%_%build.number%
+                    088332244542.dkr.ecr.ap-south-1.amazonaws.com/hello-app:%teamcity.build.branch%_latest
+                """.trimIndent()
+                commandArgs = "--platform linux/amd64 --build-arg artifact_version=%env.COMMIT_ID% --build-arg build_version=%build.counter%"
+            }
         }
     }
 })
