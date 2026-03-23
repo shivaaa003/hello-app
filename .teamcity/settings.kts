@@ -1,4 +1,5 @@
 import jetbrains.buildServer.configs.kotlin.*
+import jetbrains.buildServer.configs.kotlin.buildFeatures.dockerRegistryConnections
 import jetbrains.buildServer.configs.kotlin.buildSteps.dockerCommand
 import jetbrains.buildServer.configs.kotlin.buildSteps.script
 import jetbrains.buildServer.configs.kotlin.projectFeatures.dockerECRRegistry
@@ -98,6 +99,11 @@ object Build : BuildType({
                 """.trimIndent()
                 commandArgs = "--platform linux/amd64 --build-arg artifact_version=%env.COMMIT_ID% --build-arg build_version=%build.counter%"
             }
+        }
+    }
+
+    features {
+        dockerRegistryConnections {
         }
     }
 })
