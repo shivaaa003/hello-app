@@ -44,6 +44,7 @@ object Build : BuildType({
 
     params {
         param("env.COMMIT_ID", "")
+        param("env.BRANCH_CLEAN", "%teamcity.build.vcs.branch.replace('refs/heads/','').replace('/','-')%")
         param("env.isProdBuild", "")
     }
 
