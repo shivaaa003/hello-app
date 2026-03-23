@@ -121,7 +121,7 @@ object Build : BuildType({
     features {
         dockerRegistryConnections {
             loginToRegistry = on {
-                dockerRegistryId = "PROJECT_EXT_2"
+                dockerRegistryId = "PROJECT_EXT_3"
             }
         }
     }
