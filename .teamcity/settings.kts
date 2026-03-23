@@ -2,7 +2,6 @@ import jetbrains.buildServer.configs.kotlin.*
 import jetbrains.buildServer.configs.kotlin.buildFeatures.dockerRegistryConnections
 import jetbrains.buildServer.configs.kotlin.buildSteps.dockerCommand
 import jetbrains.buildServer.configs.kotlin.buildSteps.script
-import jetbrains.buildServer.configs.kotlin.projectFeatures.dockerECRRegistry
 
 /*
 The settings script is an entry point for defining a TeamCity
@@ -38,19 +37,6 @@ project {
 
     params {
         param("env.COMMIT_ID", "dummy")
-    }
-
-    features {
-        dockerECRRegistry {
-            id = "PROJECT_EXT_2"
-            displayName = "Amazon ECR"
-            ecrType = ecrPublic()
-            credentialsProvider = accessKey {
-                accessKeyId = "AKIARJEIDCY7JZ7KBAOD"
-                secretAccessKey = "credentialsJSON:416a74ce-89d1-4ca3-85ae-ddf09572e62c"
-            }
-            credentialsType = accessKeys()
-        }
     }
 }
 
