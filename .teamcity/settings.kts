@@ -120,6 +120,11 @@ object Build : BuildType({
             name = "DeployDev"
             id = "DeployDev"
             type = "octopus.create.release"
+
+            conditions {
+                equals("teamcity.build.branch", "develop")
+                doesNotEqual("env.isProdBuild", "Yes")
+            }
             param("octopus_additionalcommandlinearguments", """--variable="DockerTag=%build.number%"""")
             param("octopus_space_name", "Default")
             param("octopus_channel_name", "Development")
