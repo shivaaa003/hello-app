@@ -122,7 +122,7 @@ object Build : BuildType({
             type = "octopus.create.release"
 
             conditions {
-                equals("teamcity.build.branch", "develop")
+                equals("teamcity.build.branch", "main")
                 doesNotEqual("env.isProdBuild", "Yes")
             }
             param("octopus_additionalcommandlinearguments", """--variable="DockerTag=%build.number%"""")
