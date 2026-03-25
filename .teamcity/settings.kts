@@ -6,13 +6,12 @@ import jetbrains.buildServer.configs.kotlin.buildSteps.dockerCommand
 import jetbrains.buildServer.configs.kotlin.buildSteps.script
 import jetbrains.buildServer.configs.kotlin.triggers.vcs
 
-version = "2024.12"   // Update this to match your TeamCity server version (check in UI)
+version = "2024.12"
 
 project {
 
-    // Define the build type
     val hello_app_build = BuildType {
-        id = AbsoluteId("HelloApp_hello_app_build")   // ← Fixed: added HelloApp_ prefix
+        id = AbsoluteId("HelloApp_hello_app_build")
         name = "Build"
 
         params {
@@ -77,7 +76,8 @@ project {
                 }
             }
 
-            // DeployDev
+            // ==================== FIXED DEPLOYMENT STEPS ====================
+
             step {
                 name = "DeployDev"
                 id = "DeployDev"
@@ -99,7 +99,6 @@ project {
                 param("octopus_releasenumber", "%build.number%")
             }
 
-            // DeployStage
             step {
                 name = "DeployStage"
                 id = "DeployStage"
@@ -121,7 +120,6 @@ project {
                 param("octopus_releasenumber", "%build.number%")
             }
 
-            // DeployUAT
             step {
                 name = "DeployUAT"
                 id = "DeployUAT"
@@ -143,7 +141,7 @@ project {
                 param("octopus_releasenumber", "%build.number%")
             }
 
-            // Retag for Prod
+            // Prod Retag steps (these are fine as-is)
             script {
                 name = "Retag_UAT_image_for_Prod"
                 id = "Retag_release_branch_image_for_Prod"
@@ -191,12 +189,11 @@ project {
             perfmon { }
             dockerRegistryConnections {
                 loginToRegistry = on {
-                    dockerRegistryId = "PROJECT_EXT_24,PROJECT_EXT_30"   // ← UPDATE with your actual Docker registry connection IDs from TeamCity UI
+                    dockerRegistryId = "PROJECT_EXT_24,PROJECT_EXT_30"   // ← Update these IDs
                 }
             }
         }
     }
 
-    // Register the build type
     buildType(hello_app_build)
 }
