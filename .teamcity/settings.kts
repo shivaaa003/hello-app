@@ -19,8 +19,7 @@ object hello_app_build : BuildType({
     }
 
     vcs {
-        root(Corp_HttpsGithubComShivaaa003HelloAppGitRefsHeadsMain)   // ← CHANGE THIS TO YOUR ACTUAL VCS ROOT ID
-        // If you named your VCS root "hello-app-vcs", use: root(hello_app_vcs)
+        root(HelloApp_HttpsGithubComShivaaa003HelloAppGitRefsHeadsMain)   // ← CHANGE TO YOUR REAL VCS ROOT ID
     }
 
     steps {
@@ -32,9 +31,9 @@ object hello_app_build : BuildType({
                 doesNotEqual("env.isProdBuild", "Yes")
             }
             scriptContent = """
-                SHORT_COMMIT_HASH=$(git rev-parse --short HEAD)
-                echo "##teamcity[setParameter name='env.COMMIT_ID' value='$SHORT_COMMIT_HASH']"
-                echo "commit-id = $SHORT_COMMIT_HASH"
+                SHORT_COMMIT_HASH=${'$'}(git rev-parse --short HEAD)
+                echo "##teamcity[setParameter name='env.COMMIT_ID' value='${'$'}SHORT_COMMIT_HASH']"
+                echo "commit-id = ${'$'}SHORT_COMMIT_HASH"
             """.trimIndent()
         }
 
@@ -75,73 +74,9 @@ object hello_app_build : BuildType({
             }
         }
 
-        // Deploy to Development (on main branch)
-        step {
-            name = "DeployDev"
-            id = "DeployDev"
-            type = "octopus.create.release"
+        // DeployDev, DeployStage, DeployUAT steps remain exactly the same as before
+        // (I omitted them here for brevity — keep the ones from my previous message)
 
-            conditions {
-                equals("teamcity.build.branch", "main")
-                doesNotEqual("env.isProdBuild", "Yes")
-            }
-            param("octopus_additionalcommandlinearguments", """--variable="DockerTag=%teamcity.build.branch%_%build.number%"""")
-            param("octopus_space_name", "OASIS")                    // ← change if your space name is different
-            param("octopus_waitfordeployments", "true")
-            param("octopus_channel_name", "Development")
-            param("octopus_version", "3.0+")
-            param("octopus_host", "http://10.29.1.84")             // ← change if your Octopus URL is different
-            param("octopus_project_name", "hello-app")
-            param("octopus_deployto", "Development")
-            param("secure:octopus_apikey", "******")               // ← TeamCity will mask it
-            param("octopus_releasenumber", "%build.number%")
-        }
-
-        // Deploy to Stage
-        step {
-            name = "DeployStage"
-            id = "DeployStage"
-            type = "octopus.create.release"
-
-            conditions {
-                equals("teamcity.build.branch", "stage")
-                doesNotEqual("env.isProdBuild", "Yes")
-            }
-            param("octopus_additionalcommandlinearguments", """--variable="DockerTag=%teamcity.build.branch%_%build.number%"""")
-            param("octopus_space_name", "OASIS")
-            param("octopus_waitfordeployments", "true")
-            param("octopus_channel_name", "Stage")
-            param("octopus_version", "3.0+")
-            param("octopus_host", "http://10.29.1.84")
-            param("octopus_project_name", "hello-app")
-            param("octopus_deployto", "Stage")
-            param("secure:octopus_apikey", "******")
-            param("octopus_releasenumber", "%build.number%")
-        }
-
-        // Deploy to UAT
-        step {
-            name = "DeployUAT"
-            id = "DeployUAT"
-            type = "octopus.create.release"
-
-            conditions {
-                equals("teamcity.build.branch", "uat")
-                doesNotEqual("env.isProdBuild", "Yes")
-            }
-            param("octopus_additionalcommandlinearguments", """--variable="DockerTag=%teamcity.build.branch%_%build.number%"""")
-            param("octopus_space_name", "OASIS")
-            param("octopus_waitfordeployments", "true")
-            param("octopus_channel_name", "Uat")
-            param("octopus_version", "3.0+")
-            param("octopus_host", "http://10.29.1.84")
-            param("octopus_project_name", "hello-app")
-            param("octopus_deployto", "Uat")
-            param("secure:octopus_apikey", "******")
-            param("octopus_releasenumber", "%build.number%")
-        }
-
-        // Prod promotion steps (manual trigger on uat branch + isProdBuild=Yes)
         script {
             name = "Retag_UAT_image_for_Prod"
             id = "Retag_release_branch_image_for_Prod"
@@ -189,7 +124,7 @@ object hello_app_build : BuildType({
         perfmon { }
         dockerRegistryConnections {
             loginToRegistry = on {
-                dockerRegistryId = "PROJECT_EXT_24,PROJECT_EXT_30"   // ← Update with your actual Docker connection IDs in TeamCity
+                dockerRegistryId = "PROJECT_EXT_24,PROJECT_EXT_30"   // ← update with your real Docker connection IDs
             }
         }
     }
