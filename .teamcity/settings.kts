@@ -67,27 +67,6 @@ object Build : BuildType({
         root(DslContext.settingsRoot)
     }
 
-    steps {
-        step {
-            name = "DeployDev"
-            id = "DeployDev"
-            type = "octopus.create.release"
-
-            conditions {
-                doesNotEqual("env.isProdBuild", "Yes")
-            }
-            param("octopus_additionalcommandlinearguments", """--variable="DockerTag=%build.number%"""")
-            param("octopus_space_name", "Default")
-            param("octopus_channel_name", "Development")
-            param("octopus_version", "3.0+")
-            param("octopus_host", "https://poc01.octopus.app")
-            param("octopus_project_name", "hello-app")
-            param("octopus_deployto", "Development")
-            param("secure:octopus_apikey", "credentialsJSON:26316b1d-1617-413d-a31f-30f4d6f19b78")
-            param("octopus_releasenumber", "%build.number%")
-        }
-    }
-
     features {
         dockerRegistryConnections {
             loginToRegistry = on {
