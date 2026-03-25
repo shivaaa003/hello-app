@@ -45,8 +45,8 @@ project {
                     contextDir = "."
                     platform = DockerCommandStep.ImagePlatform.Linux
                     namesAndTags = """
-                        088332244542.dkr.ecr.ap-south-1.amazonaws.com/non-prod/hello-app:%teamcity.build.branch%_%build.number%
-                        088332244542.dkr.ecr.ap-south-1.amazonaws.com/non-prod/hello-app:%teamcity.build.branch%_latest
+                        088332244542.dkr.ecr.ap-south-1.amazonaws.com/non-prod/hello-app:%build.number%
+                        088332244542.dkr.ecr.ap-south-1.amazonaws.com/non-prod/hello-app:latest
                     """.trimIndent()
                     commandArgs = "--platform linux/amd64 --build-arg artifact_version=%env.COMMIT_ID% --build-arg build_version=%build.counter%"
                 }
@@ -57,14 +57,14 @@ project {
                 id = "docker_image_push"
                 commandType = push {
                     namesAndTags = """
-                        088332244542.dkr.ecr.ap-south-1.amazonaws.com/non-prod/hello-app:%teamcity.build.branch%_%build.number%
-                        088332244542.dkr.ecr.ap-south-1.amazonaws.com/non-prod/hello-app:%teamcity.build.branch%_latest
+                        088332244542.dkr.ecr.ap-south-1.amazonaws.com/non-prod/hello-app:%build.number%
+                        088332244542.dkr.ecr.ap-south-1.amazonaws.com/non-prod/hello-app:latest
                     """.trimIndent()
                     removeImageAfterPush = false
                 }
             }
 
-            // Simple Deploy Steps for demonstration
+            // Simple Deploy Steps (no branch dependency)
             step {
                 name = "DeployDev"
                 id = "DeployDev"
@@ -104,14 +104,14 @@ project {
                 param("secure:octopus_apikey", "******")
             }
 
-            // Prod Promotion
+            // Prod Promotion Steps
             script {
                 name = "Retag_UAT_image_for_Prod"
                 id = "Retag_release_branch_image_for_Prod"
                 scriptContent = """
-                    docker pull 088332244542.dkr.ecr.ap-south-1.amazonaws.com/non-prod/hello-app:uat_latest
-                    docker tag 088332244542.dkr.ecr.ap-south-1.amazonaws.com/non-prod/hello-app:uat_latest 088332244542.dkr.ecr.ap-south-1.amazonaws.com/prod/hello-app:prod_%build.number%
-                    docker tag 088332244542.dkr.ecr.ap-south-1.amazonaws.com/non-prod/hello-app:uat_latest 088332244542.dkr.ecr.ap-south-1.amazonaws.com/prod/hello-app:prod_latest
+                    docker pull 088332244542.dkr.ecr.ap-south-1.amazonaws.com/non-prod/hello-app:latest
+                    docker tag 088332244542.dkr.ecr.ap-south-1.amazonaws.com/non-prod/hello-app:latest 088332244542.dkr.ecr.ap-south-1.amazonaws.com/prod/hello-app:prod_%build.number%
+                    docker tag 088332244542.dkr.ecr.ap-south-1.amazonaws.com/non-prod/hello-app:latest 088332244542.dkr.ecr.ap-south-1.amazonaws.com/prod/hello-app:prod_latest
                 """.trimIndent()
             }
 
