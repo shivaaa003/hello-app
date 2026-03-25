@@ -1,76 +1,195 @@
+package HelloApp.buildTypes
+
 import jetbrains.buildServer.configs.kotlin.*
 import jetbrains.buildServer.configs.kotlin.buildFeatures.dockerRegistryConnections
-import jetbrains.buildServer.configs.kotlin.projectFeatures.dockerECRRegistry
+import jetbrains.buildServer.configs.kotlin.buildFeatures.perfmon
+import jetbrains.buildServer.configs.kotlin.buildSteps.DockerCommandStep
+import jetbrains.buildServer.configs.kotlin.buildSteps.dockerCommand
+import jetbrains.buildServer.configs.kotlin.buildSteps.script
+import jetbrains.buildServer.configs.kotlin.triggers.vcs
 
-/*
-The settings script is an entry point for defining a TeamCity
-project hierarchy. The script should contain a single call to the
-project() function with a Project instance or an init function as
-an argument.
-
-VcsRoots, BuildTypes, Templates, and subprojects can be
-registered inside the project using the vcsRoot(), buildType(),
-template(), and subProject() methods respectively.
-
-To debug settings scripts in command-line, run the
-
-    mvnDebug org.jetbrains.teamcity:teamcity-configs-maven-plugin:generate
-
-command and attach your debugger to the port 8000.
-
-To debug in IntelliJ Idea, open the 'Maven Projects' tool window (View
--> Tool Windows -> Maven Projects), find the generate task node
-(Plugins -> teamcity-configs -> teamcity-configs:generate), the
-'Debug' option is available in the context menu for the task.
-*/
-
-version = "2025.11"
-
-project {
-    description = """
-        this is to understand the ci on the teamcity 
-        this is minicry of oasis project
-    """.trimIndent()
-
-    buildType(Build)
-
-    params {
-        param("env.COMMIT_ID", "dummy")
-    }
-
-    features {
-        dockerECRRegistry {
-            id = "PROJECT_EXT_3"
-            displayName = "Amazon ECR"
-            ecrType = ecrPrivate()
-            registryId = "088332244542"
-            credentialsProvider = accessKey {
-                accessKeyId = "AKIARJEIDCY7JZ7KBAOD"
-                secretAccessKey = "credentialsJSON:416a74ce-89d1-4ca3-85ae-ddf09572e62c"
-            }
-            regionCode = "ap-south-1"
-            credentialsType = accessKeys()
-        }
-    }
-}
-
-object Build : BuildType({
+object hello_app_build : BuildType({
+    id = AbsoluteId("hello_app_build")
     name = "Build"
 
     params {
         param("env.COMMIT_ID", "")
-        param("env.BRANCH_CLEAN", "%teamcity.build.vcs.branch.replace('refs/heads/','').replace('/','-')%")
-        param("env.isProdBuild", "")
+        select("env.isProdBuild", "", label = "isProdBuild?", description = "Select 'Yes' if this build is for Prod.", display = ParameterDisplay.PROMPT,
+                options = listOf("No", "Yes"))
     }
 
     vcs {
-        root(DslContext.settingsRoot)
+        root(Corp_HttpsGithubComShivaaa003HelloAppGitRefsHeadsMain)   // ← CHANGE THIS TO YOUR ACTUAL VCS ROOT ID
+        // If you named your VCS root "hello-app-vcs", use: root(hello_app_vcs)
+    }
+
+    steps {
+        script {
+            name = "Set Commit ID"
+            id = "Set_Commit_ID"
+
+            conditions {
+                doesNotEqual("env.isProdBuild", "Yes")
+            }
+            scriptContent = """
+                SHORT_COMMIT_HASH=$(git rev-parse --short HEAD)
+                echo "##teamcity[setParameter name='env.COMMIT_ID' value='$SHORT_COMMIT_HASH']"
+                echo "commit-id = $SHORT_COMMIT_HASH"
+            """.trimIndent()
+        }
+
+        dockerCommand {
+            name = "dockerbuild"
+            id = "dockerbuild"
+
+            conditions {
+                doesNotEqual("env.isProdBuild", "Yes")
+            }
+            commandType = build {
+                source = file {
+                    path = "Dockerfile"
+                }
+                contextDir = "."
+                platform = DockerCommandStep.ImagePlatform.Linux
+                namesAndTags = """
+                    088332244542.dkr.ecr.ap-south-1.amazonaws.com/non-prod/hello-app:%teamcity.build.branch%_%build.number%
+                    088332244542.dkr.ecr.ap-south-1.amazonaws.com/non-prod/hello-app:%teamcity.build.branch%_latest
+                """.trimIndent()
+                commandArgs = "--platform linux/amd64 --build-arg artifact_version=%env.COMMIT_ID% --build-arg build_version=%build.counter%"
+            }
+        }
+
+        dockerCommand {
+            name = "docker image push"
+            id = "docker_image_push"
+
+            conditions {
+                doesNotEqual("env.isProdBuild", "Yes")
+            }
+            commandType = push {
+                namesAndTags = """
+                    088332244542.dkr.ecr.ap-south-1.amazonaws.com/non-prod/hello-app:%teamcity.build.branch%_%build.number%
+                    088332244542.dkr.ecr.ap-south-1.amazonaws.com/non-prod/hello-app:%teamcity.build.branch%_latest
+                """.trimIndent()
+                removeImageAfterPush = false
+            }
+        }
+
+        // Deploy to Development (on main branch)
+        step {
+            name = "DeployDev"
+            id = "DeployDev"
+            type = "octopus.create.release"
+
+            conditions {
+                equals("teamcity.build.branch", "main")
+                doesNotEqual("env.isProdBuild", "Yes")
+            }
+            param("octopus_additionalcommandlinearguments", """--variable="DockerTag=%teamcity.build.branch%_%build.number%"""")
+            param("octopus_space_name", "OASIS")                    // ← change if your space name is different
+            param("octopus_waitfordeployments", "true")
+            param("octopus_channel_name", "Development")
+            param("octopus_version", "3.0+")
+            param("octopus_host", "http://10.29.1.84")             // ← change if your Octopus URL is different
+            param("octopus_project_name", "hello-app")
+            param("octopus_deployto", "Development")
+            param("secure:octopus_apikey", "******")               // ← TeamCity will mask it
+            param("octopus_releasenumber", "%build.number%")
+        }
+
+        // Deploy to Stage
+        step {
+            name = "DeployStage"
+            id = "DeployStage"
+            type = "octopus.create.release"
+
+            conditions {
+                equals("teamcity.build.branch", "stage")
+                doesNotEqual("env.isProdBuild", "Yes")
+            }
+            param("octopus_additionalcommandlinearguments", """--variable="DockerTag=%teamcity.build.branch%_%build.number%"""")
+            param("octopus_space_name", "OASIS")
+            param("octopus_waitfordeployments", "true")
+            param("octopus_channel_name", "Stage")
+            param("octopus_version", "3.0+")
+            param("octopus_host", "http://10.29.1.84")
+            param("octopus_project_name", "hello-app")
+            param("octopus_deployto", "Stage")
+            param("secure:octopus_apikey", "******")
+            param("octopus_releasenumber", "%build.number%")
+        }
+
+        // Deploy to UAT
+        step {
+            name = "DeployUAT"
+            id = "DeployUAT"
+            type = "octopus.create.release"
+
+            conditions {
+                equals("teamcity.build.branch", "uat")
+                doesNotEqual("env.isProdBuild", "Yes")
+            }
+            param("octopus_additionalcommandlinearguments", """--variable="DockerTag=%teamcity.build.branch%_%build.number%"""")
+            param("octopus_space_name", "OASIS")
+            param("octopus_waitfordeployments", "true")
+            param("octopus_channel_name", "Uat")
+            param("octopus_version", "3.0+")
+            param("octopus_host", "http://10.29.1.84")
+            param("octopus_project_name", "hello-app")
+            param("octopus_deployto", "Uat")
+            param("secure:octopus_apikey", "******")
+            param("octopus_releasenumber", "%build.number%")
+        }
+
+        // Prod promotion steps (manual trigger on uat branch + isProdBuild=Yes)
+        script {
+            name = "Retag_UAT_image_for_Prod"
+            id = "Retag_release_branch_image_for_Prod"
+
+            conditions {
+                equals("teamcity.build.branch", "uat")
+                equals("env.isProdBuild", "Yes")
+            }
+            scriptContent = """
+                docker pull 088332244542.dkr.ecr.ap-south-1.amazonaws.com/non-prod/hello-app:uat_latest
+                docker tag 088332244542.dkr.ecr.ap-south-1.amazonaws.com/non-prod/hello-app:uat_latest 088332244542.dkr.ecr.ap-south-1.amazonaws.com/prod/hello-app:prod_%build.number%
+                docker tag 088332244542.dkr.ecr.ap-south-1.amazonaws.com/non-prod/hello-app:uat_latest 088332244542.dkr.ecr.ap-south-1.amazonaws.com/prod/hello-app:prod_latest
+            """.trimIndent()
+        }
+
+        dockerCommand {
+            name = "Push_Prod_image"
+            id = "Push_Prod_image"
+
+            conditions {
+                equals("teamcity.build.branch", "uat")
+                equals("env.isProdBuild", "Yes")
+            }
+            commandType = push {
+                namesAndTags = """
+                    088332244542.dkr.ecr.ap-south-1.amazonaws.com/prod/hello-app:prod_%build.number%
+                    088332244542.dkr.ecr.ap-south-1.amazonaws.com/prod/hello-app:prod_latest
+                """.trimIndent()
+                removeImageAfterPush = false
+            }
+        }
+    }
+
+    triggers {
+        vcs {
+            branchFilter = """
+                +:main
+                +:stage
+                +:uat
+            """.trimIndent()
+        }
     }
 
     features {
+        perfmon { }
         dockerRegistryConnections {
             loginToRegistry = on {
-                dockerRegistryId = "PROJECT_EXT_3"
+                dockerRegistryId = "PROJECT_EXT_24,PROJECT_EXT_30"   // ← Update with your actual Docker connection IDs in TeamCity
             }
         }
     }
