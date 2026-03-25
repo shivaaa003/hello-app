@@ -1,6 +1,5 @@
 import jetbrains.buildServer.configs.kotlin.*
 import jetbrains.buildServer.configs.kotlin.buildFeatures.dockerRegistryConnections
-import jetbrains.buildServer.configs.kotlin.buildSteps.dockerCommand
 import jetbrains.buildServer.configs.kotlin.projectFeatures.dockerECRRegistry
 
 /*
@@ -69,20 +68,6 @@ object Build : BuildType({
     }
 
     steps {
-        dockerCommand {
-            name = "docker image push"
-            id = "docker_image_push"
-
-            conditions {
-                doesNotEqual("env.isProdBuild", "Yes")
-            }
-            commandType = push {
-                namesAndTags = """
-                    088332244542.dkr.ecr.ap-south-1.amazonaws.com/hello-app:%build.number%
-                    088332244542.dkr.ecr.ap-south-1.amazonaws.com/hello-app:latest
-                """.trimIndent()
-            }
-        }
         step {
             name = "DeployDev"
             id = "DeployDev"
