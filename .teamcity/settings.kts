@@ -76,8 +76,7 @@ project {
                 }
             }
 
-            // ==================== FIXED DEPLOYMENT STEPS ====================
-
+            // DeployDev - only on main branch (non-prod)
             step {
                 name = "DeployDev"
                 id = "DeployDev"
@@ -99,6 +98,7 @@ project {
                 param("octopus_releasenumber", "%build.number%")
             }
 
+            // DeployStage - only on stage branch (non-prod)
             step {
                 name = "DeployStage"
                 id = "DeployStage"
@@ -120,6 +120,7 @@ project {
                 param("octopus_releasenumber", "%build.number%")
             }
 
+            // DeployUAT - only on uat branch (non-prod)
             step {
                 name = "DeployUAT"
                 id = "DeployUAT"
@@ -141,7 +142,7 @@ project {
                 param("octopus_releasenumber", "%build.number%")
             }
 
-            // Prod Retag steps (these are fine as-is)
+            // Retag_UAT_image_for_Prod (manual prod promotion)
             script {
                 name = "Retag_UAT_image_for_Prod"
                 id = "Retag_release_branch_image_for_Prod"
@@ -189,7 +190,7 @@ project {
             perfmon { }
             dockerRegistryConnections {
                 loginToRegistry = on {
-                    dockerRegistryId = "PROJECT_EXT_24,PROJECT_EXT_30"   // ← Update these IDs
+                    dockerRegistryId = "PROJECT_EXT_24,PROJECT_EXT_30"   // ← Update with your real IDs
                 }
             }
         }
