@@ -76,16 +76,19 @@ project {
                 }
             }
 
-            // DeployDev - only on main branch (non-prod)
+            // DeployDev - runs only on main branch (non-prod)
             step {
                 name = "DeployDev"
                 id = "DeployDev"
                 type = "octopus.create.release"
 
+                // Execution condition instead of conditions block
+                executionMode = BuildStep.ExecutionMode.ONLY_IF_SUCCESS
                 conditions {
                     equals("teamcity.build.branch", "main")
                     doesNotEqual("env.isProdBuild", "Yes")
                 }
+
                 param("octopus_additionalcommandlinearguments", """--variable="DockerTag=%teamcity.build.branch%_%build.number%"""")
                 param("octopus_space_name", "OASIS")
                 param("octopus_waitfordeployments", "true")
@@ -98,16 +101,18 @@ project {
                 param("octopus_releasenumber", "%build.number%")
             }
 
-            // DeployStage - only on stage branch (non-prod)
+            // DeployStage - runs only on stage branch (non-prod)
             step {
                 name = "DeployStage"
                 id = "DeployStage"
                 type = "octopus.create.release"
 
+                executionMode = BuildStep.ExecutionMode.ONLY_IF_SUCCESS
                 conditions {
                     equals("teamcity.build.branch", "stage")
                     doesNotEqual("env.isProdBuild", "Yes")
                 }
+
                 param("octopus_additionalcommandlinearguments", """--variable="DockerTag=%teamcity.build.branch%_%build.number%"""")
                 param("octopus_space_name", "OASIS")
                 param("octopus_waitfordeployments", "true")
@@ -120,16 +125,18 @@ project {
                 param("octopus_releasenumber", "%build.number%")
             }
 
-            // DeployUAT - only on uat branch (non-prod)
+            // DeployUAT - runs only on uat branch (non-prod)
             step {
                 name = "DeployUAT"
                 id = "DeployUAT"
                 type = "octopus.create.release"
 
+                executionMode = BuildStep.ExecutionMode.ONLY_IF_SUCCESS
                 conditions {
                     equals("teamcity.build.branch", "uat")
                     doesNotEqual("env.isProdBuild", "Yes")
                 }
+
                 param("octopus_additionalcommandlinearguments", """--variable="DockerTag=%teamcity.build.branch%_%build.number%"""")
                 param("octopus_space_name", "OASIS")
                 param("octopus_waitfordeployments", "true")
@@ -142,7 +149,7 @@ project {
                 param("octopus_releasenumber", "%build.number%")
             }
 
-            // Retag_UAT_image_for_Prod (manual prod promotion)
+            // Retag for Prod (manual)
             script {
                 name = "Retag_UAT_image_for_Prod"
                 id = "Retag_release_branch_image_for_Prod"
@@ -190,7 +197,7 @@ project {
             perfmon { }
             dockerRegistryConnections {
                 loginToRegistry = on {
-                    dockerRegistryId = "PROJECT_EXT_24,PROJECT_EXT_30"   // ← Update with your real IDs
+                    dockerRegistryId = "PROJECT_EXT_24,PROJECT_EXT_30" // ← Update with your real Docker registry connection IDs
                 }
             }
         }
