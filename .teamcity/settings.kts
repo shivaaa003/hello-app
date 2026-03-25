@@ -1,7 +1,6 @@
 import jetbrains.buildServer.configs.kotlin.*
 import jetbrains.buildServer.configs.kotlin.buildFeatures.dockerRegistryConnections
 import jetbrains.buildServer.configs.kotlin.buildSteps.dockerCommand
-import jetbrains.buildServer.configs.kotlin.buildSteps.script
 import jetbrains.buildServer.configs.kotlin.projectFeatures.dockerECRRegistry
 
 /*
@@ -70,19 +69,6 @@ object Build : BuildType({
     }
 
     steps {
-        script {
-            name = "set commit id"
-            id = "set_commit_id"
-
-            conditions {
-                doesNotEqual("env.isProdBuild", "yes")
-            }
-            scriptContent = """
-                SHORT_COMMIT_HASH=${'$'}(git rev-parse --short HEAD)
-                echo "##teamcity[setParameter name='env.COMMIT_ID' value='${'$'}SHORT_COMMIT_HASH']"
-                echo "commit-id = ${'$'}SHORT_COMMIT_HASH"
-            """.trimIndent()
-        }
         dockerCommand {
             name = "dockerbuild"
             id = "dockerbuild"
