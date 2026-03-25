@@ -6,14 +6,12 @@ import jetbrains.buildServer.configs.kotlin.buildSteps.dockerCommand
 import jetbrains.buildServer.configs.kotlin.buildSteps.script
 import jetbrains.buildServer.configs.kotlin.triggers.vcs
 
-version = "2024.12"   // Change this to match your TeamCity server version if needed
+version = "2024.12"   // Update this to match your TeamCity server version
 
 project {
 
-    buildType(hello_app_build)
-
-    // ====================== BUILD CONFIGURATION ======================
-    object hello_app_build : BuildType({
+    // Define the build type directly inside the project
+    val hello_app_build = BuildType {
         id = AbsoluteId("hello_app_build")
         name = "Build"
 
@@ -79,7 +77,7 @@ project {
                 }
             }
 
-            // Deploy to Development (main branch)
+            // DeployDev
             step {
                 name = "DeployDev"
                 id = "DeployDev"
@@ -101,7 +99,7 @@ project {
                 param("octopus_releasenumber", "%build.number%")
             }
 
-            // Deploy to Stage
+            // DeployStage
             step {
                 name = "DeployStage"
                 id = "DeployStage"
@@ -123,7 +121,7 @@ project {
                 param("octopus_releasenumber", "%build.number%")
             }
 
-            // Deploy to UAT
+            // DeployUAT
             step {
                 name = "DeployUAT"
                 id = "DeployUAT"
@@ -145,7 +143,7 @@ project {
                 param("octopus_releasenumber", "%build.number%")
             }
 
-            // Prod Promotion Steps (manual trigger on uat branch with isProdBuild=Yes)
+            // Prod Retag & Push
             script {
                 name = "Retag_UAT_image_for_Prod"
                 id = "Retag_release_branch_image_for_Prod"
@@ -193,9 +191,12 @@ project {
             perfmon { }
             dockerRegistryConnections {
                 loginToRegistry = on {
-                    dockerRegistryId = "PROJECT_EXT_24,PROJECT_EXT_30"   // ← Change to your actual Docker registry connection IDs from TeamCity UI
+                    dockerRegistryId = "PROJECT_EXT_24,PROJECT_EXT_30"   // ← UPDATE with your actual Docker registry connection IDs
                 }
             }
         }
-    })
+    }
+
+    // Register the build type
+    buildType(hello_app_build)
 }
