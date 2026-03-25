@@ -29,13 +29,13 @@ project {
             script {
                 name = "Set Commit ID"
                 scriptContent = """
-                    SHORT_COMMIT_HASH=$(git rev-parse --short HEAD)
-                    echo "##teamcity[setParameter name='env.COMMIT_ID' value='$SHORT_COMMIT_HASH']"
-                    echo "commit-id = $SHORT_COMMIT_HASH"
+                    SHORT_COMMIT_HASH=${'$'}(git rev-parse --short HEAD)
+                    echo "##teamcity[setParameter name='env.COMMIT_ID' value='${'$'}SHORT_COMMIT_HASH']"
+                    echo "commit-id = ${'$'}SHORT_COMMIT_HASH"
                 """.trimIndent()
             }
 
-            // 2. Build Docker Image (Non-Prod)
+            // 2. Build Docker Image
             dockerCommand {
                 name = "Build Docker Image"
                 commandType = build {
@@ -52,7 +52,7 @@ project {
                 }
             }
 
-            // 3. Push Docker Image to Non-Prod
+            // 3. Push to Non-Prod ECR
             dockerCommand {
                 name = "Push Docker Image (Non-Prod)"
                 commandType = push {
@@ -64,7 +64,7 @@ project {
                 }
             }
 
-            // 4. Simple Deploy Steps (always run - good for demo)
+            // 4. Deploy Steps (Simple for demonstration)
             step {
                 name = "Deploy to Development"
                 type = "octopus.create.release"
@@ -101,7 +101,7 @@ project {
                 param("secure:octopus_apikey", "******")
             }
 
-            // 5. Prod Retag & Push (only when manually chosen)
+            // 5. Prod Promotion Steps
             script {
                 name = "Retag Image for Production"
                 scriptContent = """
@@ -137,7 +137,7 @@ project {
             perfmon { }
             dockerRegistryConnections {
                 loginToRegistry = on {
-                    dockerRegistryId = "PROJECT_EXT_24,PROJECT_EXT_30"   // Change to your actual IDs
+                    dockerRegistryId = "PROJECT_EXT_24,PROJECT_EXT_30"   // ← Change to your actual connection IDs
                 }
             }
         }
