@@ -25,9 +25,9 @@ project {
         }
 
         steps {
-            // 1. Set Commit ID
             script {
                 name = "Set Commit ID"
+                id = "Set_Commit_ID"
                 scriptContent = """
                     SHORT_COMMIT_HASH=${'$'}(git rev-parse --short HEAD)
                     echo "##teamcity[setParameter name='env.COMMIT_ID' value='${'$'}SHORT_COMMIT_HASH']"
@@ -35,9 +35,9 @@ project {
                 """.trimIndent()
             }
 
-            // 2. Build Docker Image
             dockerCommand {
-                name = "Build Docker Image"
+                name = "dockerbuild"
+                id = "dockerbuild"
                 commandType = build {
                     source = file {
                         path = "Dockerfile"
@@ -52,9 +52,9 @@ project {
                 }
             }
 
-            // 3. Push to Non-Prod ECR
             dockerCommand {
-                name = "Push Docker Image (Non-Prod)"
+                name = "docker image push"
+                id = "docker_image_push"
                 commandType = push {
                     namesAndTags = """
                         088332244542.dkr.ecr.ap-south-1.amazonaws.com/non-prod/hello-app:%teamcity.build.branch%_%build.number%
@@ -64,9 +64,10 @@ project {
                 }
             }
 
-            // 4. Deploy Steps (Simple for demonstration)
+            // Simple Deploy Steps for demonstration
             step {
-                name = "Deploy to Development"
+                name = "DeployDev"
+                id = "DeployDev"
                 type = "octopus.create.release"
                 param("octopus_space_name", "OASIS")
                 param("octopus_host", "http://10.29.1.84")
@@ -78,7 +79,8 @@ project {
             }
 
             step {
-                name = "Deploy to Stage"
+                name = "DeployStage"
+                id = "DeployStage"
                 type = "octopus.create.release"
                 param("octopus_space_name", "OASIS")
                 param("octopus_host", "http://10.29.1.84")
@@ -90,7 +92,8 @@ project {
             }
 
             step {
-                name = "Deploy to UAT"
+                name = "DeployUAT"
+                id = "DeployUAT"
                 type = "octopus.create.release"
                 param("octopus_space_name", "OASIS")
                 param("octopus_host", "http://10.29.1.84")
@@ -101,9 +104,10 @@ project {
                 param("secure:octopus_apikey", "******")
             }
 
-            // 5. Prod Promotion Steps
+            // Prod Promotion
             script {
-                name = "Retag Image for Production"
+                name = "Retag_UAT_image_for_Prod"
+                id = "Retag_release_branch_image_for_Prod"
                 scriptContent = """
                     docker pull 088332244542.dkr.ecr.ap-south-1.amazonaws.com/non-prod/hello-app:uat_latest
                     docker tag 088332244542.dkr.ecr.ap-south-1.amazonaws.com/non-prod/hello-app:uat_latest 088332244542.dkr.ecr.ap-south-1.amazonaws.com/prod/hello-app:prod_%build.number%
@@ -112,7 +116,8 @@ project {
             }
 
             dockerCommand {
-                name = "Push Docker Image to Production"
+                name = "Push_Prod_image"
+                id = "Push_Prod_image"
                 commandType = push {
                     namesAndTags = """
                         088332244542.dkr.ecr.ap-south-1.amazonaws.com/prod/hello-app:prod_%build.number%
@@ -137,7 +142,7 @@ project {
             perfmon { }
             dockerRegistryConnections {
                 loginToRegistry = on {
-                    dockerRegistryId = "PROJECT_EXT_24,PROJECT_EXT_30"   // ← Change to your actual connection IDs
+                    dockerRegistryId = "PROJECT_EXT_24,PROJECT_EXT_30"
                 }
             }
         }
