@@ -70,25 +70,6 @@ object Build : BuildType({
 
     steps {
         dockerCommand {
-            name = "dockerbuild"
-            id = "dockerbuild"
-
-            conditions {
-                doesNotEqual("env.isProdBuild", "Yes")
-            }
-            commandType = build {
-                source = file {
-                    path = "Dockerfile"
-                }
-                contextDir = "."
-                namesAndTags = """
-                    088332244542.dkr.ecr.ap-south-1.amazonaws.com/hello-app:%build.number%
-                    088332244542.dkr.ecr.ap-south-1.amazonaws.com/hello-app:latest
-                """.trimIndent()
-                commandArgs = "--platform linux/amd64 --build-arg artifact_version=%env.COMMIT_ID% --build-arg build_version=%build.counter%"
-            }
-        }
-        dockerCommand {
             name = "docker image push"
             id = "docker_image_push"
 
