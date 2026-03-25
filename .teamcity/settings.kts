@@ -16,7 +16,7 @@ project {
 
         params {
             param("env.COMMIT_ID", "")
-            select("env.isProdBuild", "", label = "isProdBuild?", description = "Select 'Yes' if this build is for Prod.", display = ParameterDisplay.PROMPT,
+            select("env.isProdBuild", "No", label = "isProdBuild?", description = "Select Yes only for Production", display = ParameterDisplay.PROMPT,
                     options = listOf("No", "Yes"))
         }
 
@@ -25,27 +25,19 @@ project {
         }
 
         steps {
+            // 1. Set Commit ID
             script {
                 name = "Set Commit ID"
-                id = "Set_Commit_ID"
-
-                conditions {
-                    doesNotEqual("env.isProdBuild", "Yes")
-                }
                 scriptContent = """
-                    SHORT_COMMIT_HASH=${'$'}(git rev-parse --short HEAD)
-                    echo "##teamcity[setParameter name='env.COMMIT_ID' value='${'$'}SHORT_COMMIT_HASH']"
-                    echo "commit-id = ${'$'}SHORT_COMMIT_HASH"
+                    SHORT_COMMIT_HASH=$(git rev-parse --short HEAD)
+                    echo "##teamcity[setParameter name='env.COMMIT_ID' value='$SHORT_COMMIT_HASH']"
+                    echo "commit-id = $SHORT_COMMIT_HASH"
                 """.trimIndent()
             }
 
+            // 2. Build Docker Image (Non-Prod)
             dockerCommand {
-                name = "dockerbuild"
-                id = "dockerbuild"
-
-                conditions {
-                    doesNotEqual("env.isProdBuild", "Yes")
-                }
+                name = "Build Docker Image"
                 commandType = build {
                     source = file {
                         path = "Dockerfile"
@@ -60,13 +52,9 @@ project {
                 }
             }
 
+            // 3. Push Docker Image to Non-Prod
             dockerCommand {
-                name = "docker image push"
-                id = "docker_image_push"
-
-                conditions {
-                    doesNotEqual("env.isProdBuild", "Yes")
-                }
+                name = "Push Docker Image (Non-Prod)"
                 commandType = push {
                     namesAndTags = """
                         088332244542.dkr.ecr.ap-south-1.amazonaws.com/non-prod/hello-app:%teamcity.build.branch%_%build.number%
@@ -76,88 +64,46 @@ project {
                 }
             }
 
-            // DeployDev - runs only on main branch (non-prod)
+            // 4. Simple Deploy Steps (always run - good for demo)
             step {
-                name = "DeployDev"
-                id = "DeployDev"
+                name = "Deploy to Development"
                 type = "octopus.create.release"
-
-                // Execution condition instead of conditions block
-                executionMode = BuildStep.ExecutionMode.ONLY_IF_SUCCESS
-                conditions {
-                    equals("teamcity.build.branch", "main")
-                    doesNotEqual("env.isProdBuild", "Yes")
-                }
-
-                param("octopus_additionalcommandlinearguments", """--variable="DockerTag=%teamcity.build.branch%_%build.number%"""")
                 param("octopus_space_name", "OASIS")
-                param("octopus_waitfordeployments", "true")
+                param("octopus_host", "http://10.29.1.84")
+                param("octopus_project_name", "hello-app")
                 param("octopus_channel_name", "Development")
-                param("octopus_version", "3.0+")
-                param("octopus_host", "http://10.29.1.84")
-                param("octopus_project_name", "hello-app")
                 param("octopus_deployto", "Development")
-                param("secure:octopus_apikey", "******")
                 param("octopus_releasenumber", "%build.number%")
+                param("secure:octopus_apikey", "******")
             }
 
-            // DeployStage - runs only on stage branch (non-prod)
             step {
-                name = "DeployStage"
-                id = "DeployStage"
+                name = "Deploy to Stage"
                 type = "octopus.create.release"
-
-                executionMode = BuildStep.ExecutionMode.ONLY_IF_SUCCESS
-                conditions {
-                    equals("teamcity.build.branch", "stage")
-                    doesNotEqual("env.isProdBuild", "Yes")
-                }
-
-                param("octopus_additionalcommandlinearguments", """--variable="DockerTag=%teamcity.build.branch%_%build.number%"""")
                 param("octopus_space_name", "OASIS")
-                param("octopus_waitfordeployments", "true")
+                param("octopus_host", "http://10.29.1.84")
+                param("octopus_project_name", "hello-app")
                 param("octopus_channel_name", "Stage")
-                param("octopus_version", "3.0+")
-                param("octopus_host", "http://10.29.1.84")
-                param("octopus_project_name", "hello-app")
                 param("octopus_deployto", "Stage")
-                param("secure:octopus_apikey", "******")
                 param("octopus_releasenumber", "%build.number%")
+                param("secure:octopus_apikey", "******")
             }
 
-            // DeployUAT - runs only on uat branch (non-prod)
             step {
-                name = "DeployUAT"
-                id = "DeployUAT"
+                name = "Deploy to UAT"
                 type = "octopus.create.release"
-
-                executionMode = BuildStep.ExecutionMode.ONLY_IF_SUCCESS
-                conditions {
-                    equals("teamcity.build.branch", "uat")
-                    doesNotEqual("env.isProdBuild", "Yes")
-                }
-
-                param("octopus_additionalcommandlinearguments", """--variable="DockerTag=%teamcity.build.branch%_%build.number%"""")
                 param("octopus_space_name", "OASIS")
-                param("octopus_waitfordeployments", "true")
-                param("octopus_channel_name", "Uat")
-                param("octopus_version", "3.0+")
                 param("octopus_host", "http://10.29.1.84")
                 param("octopus_project_name", "hello-app")
+                param("octopus_channel_name", "Uat")
                 param("octopus_deployto", "Uat")
-                param("secure:octopus_apikey", "******")
                 param("octopus_releasenumber", "%build.number%")
+                param("secure:octopus_apikey", "******")
             }
 
-            // Retag for Prod (manual)
+            // 5. Prod Retag & Push (only when manually chosen)
             script {
-                name = "Retag_UAT_image_for_Prod"
-                id = "Retag_release_branch_image_for_Prod"
-
-                conditions {
-                    equals("teamcity.build.branch", "uat")
-                    equals("env.isProdBuild", "Yes")
-                }
+                name = "Retag Image for Production"
                 scriptContent = """
                     docker pull 088332244542.dkr.ecr.ap-south-1.amazonaws.com/non-prod/hello-app:uat_latest
                     docker tag 088332244542.dkr.ecr.ap-south-1.amazonaws.com/non-prod/hello-app:uat_latest 088332244542.dkr.ecr.ap-south-1.amazonaws.com/prod/hello-app:prod_%build.number%
@@ -166,13 +112,7 @@ project {
             }
 
             dockerCommand {
-                name = "Push_Prod_image"
-                id = "Push_Prod_image"
-
-                conditions {
-                    equals("teamcity.build.branch", "uat")
-                    equals("env.isProdBuild", "Yes")
-                }
+                name = "Push Docker Image to Production"
                 commandType = push {
                     namesAndTags = """
                         088332244542.dkr.ecr.ap-south-1.amazonaws.com/prod/hello-app:prod_%build.number%
@@ -197,7 +137,7 @@ project {
             perfmon { }
             dockerRegistryConnections {
                 loginToRegistry = on {
-                    dockerRegistryId = "PROJECT_EXT_24,PROJECT_EXT_30" // ← Update with your real Docker registry connection IDs
+                    dockerRegistryId = "PROJECT_EXT_24,PROJECT_EXT_30"   // Change to your actual IDs
                 }
             }
         }
